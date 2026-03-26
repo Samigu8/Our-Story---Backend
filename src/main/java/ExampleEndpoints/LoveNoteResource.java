@@ -1,5 +1,9 @@
 package com.example.resource;
 
+/*
+ * In-memory CRUD API for love notes with payload validation and safe errors.
+ */
+
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -27,6 +31,7 @@ public class LoveNoteResource {
             createNote(8, "Your smile is my favorite thing in the world. Never stop being your wonderful self.", "From Me", "Nov 22, 2023", "from-purple-400 to-pink-400")
     ));
 
+    // Helper for creating seeded love note records.
     private LoveNote createNote(int id, String message, String author, String date, String color) {
         LoveNote note = new LoveNote();
         note.id = id;
@@ -37,12 +42,14 @@ public class LoveNoteResource {
         return note;
     }
 
+    // Builds a standardized 400 response with a user-friendly message.
     private Response badRequest(String message) {
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity(Map.of("message", message))
                 .build();
     }
 
+    // Performs field-level validation for love note payloads.
     private Map<String, String> validateNote(LoveNote note) {
         Map<String, String> errors = new LinkedHashMap<>();
 
@@ -78,6 +85,7 @@ public class LoveNoteResource {
         return errors;
     }
 
+    // Generates the next in-memory ID value.
     private int nextId() {
         int maxId = 0;
         for (LoveNote note : notes) {
@@ -86,11 +94,13 @@ public class LoveNoteResource {
         return maxId + 1;
     }
 
+    // Returns all love notes.
     @GET
     public Response getNotes() {
         return Response.ok(notes).build();
     }
 
+    // Returns one love note by ID.
     @GET
     @Path("/{id}")
     public Response getNoteById(@PathParam("id") int id) {
@@ -109,6 +119,7 @@ public class LoveNoteResource {
                 .build();
     }
 
+    // Creates a new love note.
     @POST
     public Response addNote(LoveNote note) {
         Map<String, String> errors = validateNote(note);
@@ -132,6 +143,7 @@ public class LoveNoteResource {
                 .build();
     }
 
+    // Updates an existing love note.
     @PUT
     @Path("/{id}")
     public Response updateNote(@PathParam("id") int id, LoveNote updatedNote) {
@@ -161,6 +173,7 @@ public class LoveNoteResource {
                 .build();
     }
 
+    // Deletes a love note by ID.
     @DELETE
     @Path("/{id}")
     public Response deleteNote(@PathParam("id") int id) {

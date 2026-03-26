@@ -1,5 +1,9 @@
 package com.example.resource;
 
+/*
+ * In-memory CRUD API for people, including validation and user-safe error responses.
+ */
+
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PATCH;
@@ -39,12 +43,14 @@ public class PersonResource {
         }}
     ));
 
+    // Builds a standardized 400 response with a user-friendly message.
     private Response badRequest(String message) {
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity(Map.of("message", message))
                 .build();
     }
 
+    // Restricts name characters to a safe subset used by frontend validation.
     private boolean hasInvalidNameChars(String value) {
         for (char c : value.toCharArray()) {
             if (!(Character.isLetter(c) || c == ' ' || c == '-' || c == '\'')) {
@@ -54,6 +60,7 @@ public class PersonResource {
         return false;
     }
 
+    // Performs field-level validation for create/update operations.
     private Map<String, String> validatePerson(Person person) {
         Map<String, String> fieldErrors = new LinkedHashMap<>();
 
@@ -89,6 +96,7 @@ public class PersonResource {
         return fieldErrors;
     }
 
+    // Generates the next in-memory ID value.
     private int nextId() {
         int maxId = 0;
         for (Person person : people) {
@@ -97,7 +105,7 @@ public class PersonResource {
         return maxId + 1;
     }
 
-    // CREATE
+    // Creates a person after validating payload and duplicate-name rules.
     @POST
     public Response addPerson(Person person) {
         Map<String, String> fieldErrors = validatePerson(person);
@@ -134,13 +142,13 @@ public class PersonResource {
                 .build();
     }
 
-    // READ
+    // Returns all people currently stored in memory.
     @GET
     public Response getPeople() {
         return Response.ok(people).build();
     }
 
-    // READ BY ID
+    // Returns a single person by ID.
     @GET
     @Path("/{id}")
     public Response getPersonById(@PathParam("id") int id) {
@@ -158,7 +166,7 @@ public class PersonResource {
                 .build();
     }
 
-    // UPDATE - change age
+    // Updates only the age field for a person.
     @PATCH
     @Path("/{id}/age")
     public Response updatePersonAge(@PathParam("id") int id, int newAge) {
@@ -171,7 +179,7 @@ public class PersonResource {
         return Response.status(Response.Status.NOT_FOUND).entity("Person with ID " + id + " not found").build();
     }
 
-    // UPDATE - change entire database entry
+    // Replaces a full person record by ID.
     @PUT
     @Path("/{id}")
     public Response updatePerson(@PathParam("id") int id, Person updatedPerson) {
@@ -184,7 +192,7 @@ public class PersonResource {
         return Response.status(Response.Status.NOT_FOUND).entity("Person with ID " + id + " not found").build();
     }
 
-    // DELETE
+    // Deletes a person by ID.
     @DELETE
     @Path("/{id}")
     public Response deletePerson(@PathParam("id") int id) {

@@ -1,5 +1,9 @@
 package org.acme;
 
+/*
+ * Runs the same endpoint tests as GreetingResourceTest against packaged artifacts.
+ */
+
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 
 @QuarkusIntegrationTest

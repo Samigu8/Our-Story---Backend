@@ -1,5 +1,9 @@
 package com.example.resource;
 
+/*
+ * In-memory CRUD API for memory photos, including upload metadata validation.
+ */
+
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -31,6 +35,7 @@ public class MemoryResource {
             createPhoto(12, "Spontaneous picnic in the park")
     ));
 
+    // Helper for creating seeded photo records.
     private MemoryPhoto createPhoto(int id, String caption) {
         MemoryPhoto photo = new MemoryPhoto();
         photo.id = id;
@@ -39,12 +44,14 @@ public class MemoryResource {
         return photo;
     }
 
+    // Builds a standardized 400 response with a user-friendly message.
     private Response badRequest(String message) {
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity(Map.of("message", message))
                 .build();
     }
 
+    // Performs field-level validation for memory photo payloads.
     private Map<String, String> validatePhoto(MemoryPhoto photo) {
         Map<String, String> errors = new LinkedHashMap<>();
 
@@ -66,6 +73,7 @@ public class MemoryResource {
         return errors;
     }
 
+    // Generates the next in-memory ID value.
     private int nextId() {
         int maxId = 0;
         for (MemoryPhoto photo : photos) {
@@ -74,11 +82,13 @@ public class MemoryResource {
         return maxId + 1;
     }
 
+    // Returns all stored memory photos.
     @GET
     public Response getPhotos() {
         return Response.ok(photos).build();
     }
 
+    // Returns one memory photo by ID.
     @GET
     @Path("/{id}")
     public Response getPhotoById(@PathParam("id") int id) {
@@ -97,6 +107,7 @@ public class MemoryResource {
                 .build();
     }
 
+    // Adds a new memory photo record.
     @POST
     public Response uploadPhoto(MemoryPhoto photo) {
         Map<String, String> errors = validatePhoto(photo);
@@ -118,6 +129,7 @@ public class MemoryResource {
                 .build();
     }
 
+    // Updates an existing memory photo record.
     @PUT
     @Path("/{id}")
     public Response updatePhoto(@PathParam("id") int id, MemoryPhoto updatedPhoto) {
@@ -145,6 +157,7 @@ public class MemoryResource {
                 .build();
     }
 
+    // Deletes a memory photo by ID.
     @DELETE
     @Path("/{id}")
     public Response deletePhoto(@PathParam("id") int id) {

@@ -1,5 +1,9 @@
 package com.example.resource;
 
+/*
+ * In-memory CRUD API for timeline events used by the frontend timeline page.
+ */
+
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -25,6 +29,7 @@ public class TimelineResource {
             createEvent(6, "Family Gathering", "August 20, 2024", "The first time our families met. A beautiful day filled with warmth, love, and new connections.")
     ));
 
+    // Helper for creating seeded timeline event records.
     private TimelineEvent createEvent(int id, String title, String date, String description) {
         TimelineEvent event = new TimelineEvent();
         event.id = id;
@@ -34,12 +39,14 @@ public class TimelineResource {
         return event;
     }
 
+    // Builds a standardized 400 response with a user-friendly message.
     private Response badRequest(String message) {
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity(Map.of("message", message))
                 .build();
     }
 
+    // Performs field-level validation for timeline event payloads.
     private Map<String, String> validateEvent(TimelineEvent event) {
         Map<String, String> errors = new LinkedHashMap<>();
 
@@ -69,6 +76,7 @@ public class TimelineResource {
         return errors;
     }
 
+    // Generates the next in-memory ID value.
     private int nextId() {
         int maxId = 0;
         for (TimelineEvent event : timelineEvents) {
@@ -77,11 +85,13 @@ public class TimelineResource {
         return maxId + 1;
     }
 
+    // Returns all timeline events.
     @GET
     public Response getEvents() {
         return Response.ok(timelineEvents).build();
     }
 
+    // Returns one timeline event by ID.
     @GET
     @Path("/{id}")
     public Response getEventById(@PathParam("id") int id) {
@@ -100,6 +110,7 @@ public class TimelineResource {
                 .build();
     }
 
+    // Creates a new timeline event.
     @POST
     public Response addEvent(TimelineEvent event) {
         Map<String, String> errors = validateEvent(event);
@@ -121,6 +132,7 @@ public class TimelineResource {
                 .build();
     }
 
+    // Updates an existing timeline event.
     @PUT
     @Path("/{id}")
     public Response updateEvent(@PathParam("id") int id, TimelineEvent updatedEvent) {
@@ -149,6 +161,7 @@ public class TimelineResource {
                 .build();
     }
 
+    // Deletes a timeline event by ID.
     @DELETE
     @Path("/{id}")
     public Response deleteEvent(@PathParam("id") int id) {
