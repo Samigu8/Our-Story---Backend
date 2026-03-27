@@ -12,13 +12,25 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Response;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Path("/timeline")
 public class TimelineResource {
+
+    private static final DateTimeFormatter DATE_FORMATTER = new DateTimeFormatterBuilder()
+            .parseCaseInsensitive()
+            .appendPattern("MMM d, uuuu")
+            .toFormatter(Locale.ENGLISH)
+            .withResolverStyle(ResolverStyle.STRICT);
 
     private final List<TimelineEvent> timelineEvents = new ArrayList<>(List.of(
             createEvent(1, "First Date", "January 15, 2023", "The day we met at the cozy coffee shop downtown. We talked for hours and knew something special was beginning."),
@@ -63,8 +75,8 @@ public class TimelineResource {
 
         if (event.date == null || event.date.trim().isEmpty()) {
             errors.put("date", "Date is required.");
-        } else if (event.date.trim().length() > 40) {
-            errors.put("date", "Date must be 40 characters or fewer.");
+        } else if (!isValidDateFormat(event.date.trim())) {
+            errors.put("date", "Date must use format Mon D, YYYY (example: Apr 8, 2024).");
         }
 
         if (event.description == null || event.description.trim().isEmpty()) {
@@ -74,6 +86,16 @@ public class TimelineResource {
         }
 
         return errors;
+    }
+
+    // Validates date strings with strict format: Mon D, YYYY (e.g., Apr 8, 2024).
+    private boolean isValidDateFormat(String value) {
+        try {
+            LocalDate.parse(value, DATE_FORMATTER);
+            return true;
+        } catch (DateTimeParseException ex) {
+            return false;
+        }
     }
 
     // Generates the next in-memory ID value.

@@ -60,13 +60,13 @@ public class MemoryResource {
             return errors;
         }
 
-        if (photo.caption == null || photo.caption.trim().isEmpty()) {
-            errors.put("caption", "Caption is required.");
-        } else if (photo.caption.trim().length() > 240) {
+        if (photo.caption != null && photo.caption.trim().length() > 240) {
             errors.put("caption", "Caption must be 240 characters or fewer.");
         }
 
-        if (photo.imageUrl != null && photo.imageUrl.trim().length() > 300) {
+        if (photo.imageUrl == null || photo.imageUrl.trim().isEmpty()) {
+            errors.put("imageUrl", "Image URL is required.");
+        } else if (photo.imageUrl.trim().length() > 300) {
             errors.put("imageUrl", "Image URL must be 300 characters or fewer.");
         }
 
@@ -119,8 +119,8 @@ public class MemoryResource {
 
         MemoryPhoto photoToStore = new MemoryPhoto();
         photoToStore.id = nextId();
-        photoToStore.caption = photo.caption.trim();
-        photoToStore.imageUrl = photo.imageUrl == null ? "" : photo.imageUrl.trim();
+        photoToStore.caption = photo.caption == null ? "" : photo.caption.trim();
+        photoToStore.imageUrl = photo.imageUrl.trim();
 
         photos.add(photoToStore);
 
@@ -146,8 +146,8 @@ public class MemoryResource {
 
         for (MemoryPhoto photo : photos) {
             if (photo.id == id) {
-                photo.caption = updatedPhoto.caption.trim();
-                photo.imageUrl = updatedPhoto.imageUrl == null ? "" : updatedPhoto.imageUrl.trim();
+                photo.caption = updatedPhoto.caption == null ? "" : updatedPhoto.caption.trim();
+                photo.imageUrl = updatedPhoto.imageUrl.trim();
                 return Response.ok(Map.of("message", "Photo updated.", "photo", photo)).build();
             }
         }
