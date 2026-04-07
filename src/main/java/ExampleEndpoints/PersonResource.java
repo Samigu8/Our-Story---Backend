@@ -89,6 +89,8 @@ public class PersonResource {
                     .build();
         }
 
+        // Panache manages primary keys; ignore any client-supplied id on create.
+        person.id = null;
         String normalizedName = person.name.trim().toLowerCase(Locale.ROOT);
         List<Person> existingPeople = Person.listAll();
         for (Person existingPerson : existingPeople) {

@@ -5,7 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
 /*
- * Person data model used by the in-memory people API endpoints.
+ * Person database entity used by the people API endpoints.
  */
 
 @Entity
