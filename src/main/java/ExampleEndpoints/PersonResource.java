@@ -105,16 +105,13 @@ public class PersonResource {
         person.persist();
 
         return Response.status(Response.Status.CREATED)
-                .entity(Map.of(
-                        "message", "Person added successfully.",
-                        "person", person
-                ))
+                .entity("Person " + person.name + " created successfully.")
                 .build();
     }
 
     // Returns all people currently stored in the database.
     @GET
-    public Response getPeople() {
+    public Response getAllPeople() {
         return Response.ok(Person.listAll()).build();
     }
 
@@ -132,26 +129,36 @@ public class PersonResource {
         }
 
         return Response.status(Response.Status.NOT_FOUND)
-                .entity(Map.of("message", "No person was found for that ID."))
+                .entity("No person was found for that ID.")
                 .build();
     }
 
-    // Updates only the age field for a person.
+    // UPDATE
     @PATCH
-    @Path("/{id}/age")
+    @Path("/{id}")
     @Transactional
-    public Response updatePersonAge(@PathParam("id") Long id, int newAge) {
+    public Response patchPerson(@PathParam("id") Long id, Person updatePerson) {
         if (id == null || id < 1) {
             return badRequest("Please provide a valid person ID.");
         }
 
-        Person person = Person.findById(id);
-        if (person == null) {
+        Person currentPerson = Person.findById(id);
+        if (currentPerson == null) {
             return Response.status(Response.Status.NOT_FOUND).entity("Person with ID " + id + " not found").build();
         }
 
-        person.age = newAge;
-        return Response.ok("Person " + person.name + "'s age updated to " + newAge).build();
+        // if the updated fields are null, update them
+        if (updatePerson.name != null) {
+            currentPerson.name = updatePerson.name.trim();
+        }
+        if (updatePerson.age > 0) {
+            currentPerson.age = updatePerson.age;
+        }
+        if (updatePerson.favoriteThing != null) {
+            currentPerson.favoriteThing = updatePerson.favoriteThing.trim();
+        }
+
+        return Response.ok("Person with ID " + id + " updated successfully").build();
     }
 
     // Replaces a full person record by ID.
