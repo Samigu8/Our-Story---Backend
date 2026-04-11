@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -30,13 +31,13 @@ public class S3UploadResource {
     private static final Set<String> ALLOWED_FOLDERS = Set.of("timeline", "memories");
 
     @ConfigProperty(name = "app.s3.bucket")
-    String bucketName;
+    Optional<String> bucketName;
 
     @ConfigProperty(name = "app.s3.region")
     String region;
 
     @ConfigProperty(name = "app.s3.public-base-url")
-    String publicBaseUrl;
+    Optional<String> publicBaseUrl;
 
     public static class PresignRequest {
         public String fileName;
@@ -60,20 +61,24 @@ public class S3UploadResource {
     }
 
     private String buildPublicUrl(String key) {
-        if (publicBaseUrl != null && !publicBaseUrl.isBlank()) {
-            return publicBaseUrl.endsWith("/")
-                    ? publicBaseUrl + key
-                    : publicBaseUrl + "/" + key;
+        String resolvedBucket = bucketName.orElse("").trim();
+        String resolvedPublicBaseUrl = publicBaseUrl.orElse("").trim();
+
+        if (!resolvedPublicBaseUrl.isBlank()) {
+            return resolvedPublicBaseUrl.endsWith("/")
+                    ? resolvedPublicBaseUrl + key
+                    : resolvedPublicBaseUrl + "/" + key;
         }
 
-        return "https://" + bucketName + ".s3." + region + ".amazonaws.com/" + key;
+        return "https://" + resolvedBucket + ".s3." + region + ".amazonaws.com/" + key;
     }
 
     @POST
     @Path("/presign")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response createPresignedUpload(PresignRequest request) {
-        if (bucketName == null || bucketName.isBlank()) {
+        String resolvedBucket = bucketName.orElse("").trim();
+        if (resolvedBucket.isBlank()) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(Map.of("message", "S3 bucket is not configured on the server."))
                     .build();
@@ -106,7 +111,7 @@ public class S3UploadResource {
                 .build()) {
 
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                    .bucket(bucketName)
+                    .bucket(resolvedBucket)
                     .key(key)
                     .contentType(contentType)
                     .build();
