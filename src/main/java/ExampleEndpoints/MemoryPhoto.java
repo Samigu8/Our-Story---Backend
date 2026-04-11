@@ -1,11 +1,16 @@
 package com.example.resource;
 
 /*
- * Memory photo data model used by the in-memory memories API endpoints.
+ * Memory photo database entity used by the memories API endpoints.
  */
 
-public class MemoryPhoto {
-    public int id;
+import io.quarkus.hibernate.orm.panache.PanacheEntity;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "memory_photos")
+public class MemoryPhoto extends PanacheEntity {
     public String caption;
     public String imageUrl;
 }

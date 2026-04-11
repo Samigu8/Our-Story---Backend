@@ -1,9 +1,10 @@
 package com.example.resource;
 
 /*
- * In-memory CRUD API for memory photos, including upload metadata validation.
+ * Database-backed CRUD API for memory photos, including upload metadata validation.
  */
 
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -12,37 +13,11 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Response;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 @Path("/memories/photos")
 public class MemoryResource {
-
-    private final List<MemoryPhoto> photos = new ArrayList<>(List.of(
-            createPhoto(1, "Sunset at the beach during our first vacation together"),
-            createPhoto(2, "Coffee date where we first met and fell in love"),
-            createPhoto(3, "Cozy winter evening by the fireplace"),
-            createPhoto(4, "Hiking adventure in the mountains"),
-            createPhoto(5, "Celebrating our first anniversary"),
-            createPhoto(6, "Dancing under the stars at the summer festival"),
-            createPhoto(7, "Cooking together in our new home"),
-            createPhoto(8, "Road trip memories and scenic views"),
-            createPhoto(9, "Laughing together at the amusement park"),
-            createPhoto(10, "Quiet moment reading books on a lazy Sunday"),
-            createPhoto(11, "Our families meeting for the first time"),
-            createPhoto(12, "Spontaneous picnic in the park")
-    ));
-
-    // Helper for creating seeded photo records.
-    private MemoryPhoto createPhoto(int id, String caption) {
-        MemoryPhoto photo = new MemoryPhoto();
-        photo.id = id;
-        photo.caption = caption;
-        photo.imageUrl = "";
-        return photo;
-    }
 
     // Builds a standardized 400 response with a user-friendly message.
     private Response badRequest(String message) {
@@ -73,33 +48,23 @@ public class MemoryResource {
         return errors;
     }
 
-    // Generates the next in-memory ID value.
-    private int nextId() {
-        int maxId = 0;
-        for (MemoryPhoto photo : photos) {
-            maxId = Math.max(maxId, photo.id);
-        }
-        return maxId + 1;
-    }
-
     // Returns all stored memory photos.
     @GET
     public Response getPhotos() {
-        return Response.ok(photos).build();
+        return Response.ok(MemoryPhoto.listAll()).build();
     }
 
     // Returns one memory photo by ID.
     @GET
     @Path("/{id}")
-    public Response getPhotoById(@PathParam("id") int id) {
-        if (id < 1) {
+    public Response getPhotoById(@PathParam("id") Long id) {
+        if (id == null || id < 1) {
             return badRequest("Please provide a valid photo ID.");
         }
 
-        for (MemoryPhoto photo : photos) {
-            if (photo.id == id) {
-                return Response.ok(photo).build();
-            }
+        MemoryPhoto photo = MemoryPhoto.findById(id);
+        if (photo != null) {
+            return Response.ok(photo).build();
         }
 
         return Response.status(Response.Status.NOT_FOUND)
@@ -109,6 +74,7 @@ public class MemoryResource {
 
     // Adds a new memory photo record.
     @POST
+    @Transactional
     public Response uploadPhoto(MemoryPhoto photo) {
         Map<String, String> errors = validatePhoto(photo);
         if (!errors.isEmpty()) {
@@ -117,23 +83,22 @@ public class MemoryResource {
                     .build();
         }
 
-        MemoryPhoto photoToStore = new MemoryPhoto();
-        photoToStore.id = nextId();
-        photoToStore.caption = photo.caption == null ? "" : photo.caption.trim();
-        photoToStore.imageUrl = photo.imageUrl.trim();
-
-        photos.add(photoToStore);
+        photo.id = null;
+        photo.caption = photo.caption == null ? "" : photo.caption.trim();
+        photo.imageUrl = photo.imageUrl.trim();
+        photo.persist();
 
         return Response.status(Response.Status.CREATED)
-                .entity(Map.of("message", "Photo uploaded.", "photo", photoToStore))
+                .entity(Map.of("message", "Photo uploaded.", "photo", photo))
                 .build();
     }
 
     // Updates an existing memory photo record.
     @PUT
     @Path("/{id}")
-    public Response updatePhoto(@PathParam("id") int id, MemoryPhoto updatedPhoto) {
-        if (id < 1) {
+    @Transactional
+    public Response updatePhoto(@PathParam("id") Long id, MemoryPhoto updatedPhoto) {
+        if (id == null || id < 1) {
             return badRequest("Please provide a valid photo ID.");
         }
 
@@ -144,33 +109,32 @@ public class MemoryResource {
                     .build();
         }
 
-        for (MemoryPhoto photo : photos) {
-            if (photo.id == id) {
-                photo.caption = updatedPhoto.caption == null ? "" : updatedPhoto.caption.trim();
-                photo.imageUrl = updatedPhoto.imageUrl.trim();
-                return Response.ok(Map.of("message", "Photo updated.", "photo", photo)).build();
-            }
+        MemoryPhoto existingPhoto = MemoryPhoto.findById(id);
+        if (existingPhoto == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", "No photo was found for that ID."))
+                    .build();
         }
 
-        return Response.status(Response.Status.NOT_FOUND)
-                .entity(Map.of("message", "No photo was found for that ID."))
-                .build();
+        existingPhoto.caption = updatedPhoto.caption == null ? "" : updatedPhoto.caption.trim();
+        existingPhoto.imageUrl = updatedPhoto.imageUrl.trim();
+        return Response.ok(Map.of("message", "Photo updated.", "photo", existingPhoto)).build();
     }
 
     // Deletes a memory photo by ID.
     @DELETE
     @Path("/{id}")
-    public Response deletePhoto(@PathParam("id") int id) {
-        if (id < 1) {
+    @Transactional
+    public Response deletePhoto(@PathParam("id") Long id) {
+        if (id == null || id < 1) {
             return badRequest("Please provide a valid photo ID.");
         }
 
-        for (int i = 0; i < photos.size(); i++) {
-            if (photos.get(i).id == id) {
-                photos.remove(i);
-                return Response.ok(Map.of("message", "Photo deleted."))
-                        .build();
-            }
+        MemoryPhoto photo = MemoryPhoto.findById(id);
+        if (photo != null) {
+            photo.delete();
+            return Response.ok(Map.of("message", "Photo deleted."))
+                    .build();
         }
 
         return Response.status(Response.Status.NOT_FOUND)

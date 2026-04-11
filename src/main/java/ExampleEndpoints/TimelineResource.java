@@ -1,9 +1,10 @@
 package com.example.resource;
 
 /*
- * In-memory CRUD API for timeline events used by the frontend timeline page.
+ * Database-backed CRUD API for timeline events used by the frontend timeline page.
  */
 
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -17,7 +18,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -31,25 +31,6 @@ public class TimelineResource {
             .appendPattern("MMM d, uuuu")
             .toFormatter(Locale.ENGLISH)
             .withResolverStyle(ResolverStyle.STRICT);
-
-    private final List<TimelineEvent> timelineEvents = new ArrayList<>(List.of(
-            createEvent(1, "First Date", "January 15, 2023", "The day we met at the cozy coffee shop downtown. We talked for hours and knew something special was beginning."),
-            createEvent(2, "Beach Vacation", "March 22, 2023", "Our first trip together. Watching the sunset by the ocean, creating memories that would last forever."),
-            createEvent(3, "Moving In Together", "June 10, 2023", "We found our perfect little apartment and started building our home together, filling it with love and laughter."),
-            createEvent(4, "Anniversary Dinner", "January 15, 2024", "Celebrating one year together at our favorite restaurant where it all began. So grateful for this journey."),
-            createEvent(5, "Road Trip Adventure", "April 8, 2024", "An unforgettable cross-country road trip, discovering new places and making countless memories along the way."),
-            createEvent(6, "Family Gathering", "August 20, 2024", "The first time our families met. A beautiful day filled with warmth, love, and new connections.")
-    ));
-
-    // Helper for creating seeded timeline event records.
-    private TimelineEvent createEvent(int id, String title, String date, String description) {
-        TimelineEvent event = new TimelineEvent();
-        event.id = id;
-        event.title = title;
-        event.date = date;
-        event.description = description;
-        return event;
-    }
 
     // Builds a standardized 400 response with a user-friendly message.
     private Response badRequest(String message) {
@@ -98,33 +79,23 @@ public class TimelineResource {
         }
     }
 
-    // Generates the next in-memory ID value.
-    private int nextId() {
-        int maxId = 0;
-        for (TimelineEvent event : timelineEvents) {
-            maxId = Math.max(maxId, event.id);
-        }
-        return maxId + 1;
-    }
-
     // Returns all timeline events.
     @GET
     public Response getEvents() {
-        return Response.ok(timelineEvents).build();
+        return Response.ok(TimelineEvent.listAll()).build();
     }
 
     // Returns one timeline event by ID.
     @GET
     @Path("/{id}")
-    public Response getEventById(@PathParam("id") int id) {
-        if (id < 1) {
+    public Response getEventById(@PathParam("id") Long id) {
+        if (id == null || id < 1) {
             return badRequest("Please provide a valid timeline event ID.");
         }
 
-        for (TimelineEvent event : timelineEvents) {
-            if (event.id == id) {
-                return Response.ok(event).build();
-            }
+        TimelineEvent event = TimelineEvent.findById(id);
+        if (event != null) {
+            return Response.ok(event).build();
         }
 
         return Response.status(Response.Status.NOT_FOUND)
@@ -134,6 +105,7 @@ public class TimelineResource {
 
     // Creates a new timeline event.
     @POST
+    @Transactional
     public Response addEvent(TimelineEvent event) {
         Map<String, String> errors = validateEvent(event);
         if (!errors.isEmpty()) {
@@ -142,23 +114,23 @@ public class TimelineResource {
                     .build();
         }
 
-        TimelineEvent eventToStore = new TimelineEvent();
-        eventToStore.id = nextId();
-        eventToStore.title = event.title.trim();
-        eventToStore.date = event.date.trim();
-        eventToStore.description = event.description.trim();
-        timelineEvents.add(eventToStore);
+        event.id = null;
+        event.title = event.title.trim();
+        event.date = event.date.trim();
+        event.description = event.description.trim();
+        event.persist();
 
         return Response.status(Response.Status.CREATED)
-                .entity(Map.of("message", "Timeline event created.", "event", eventToStore))
+                .entity(Map.of("message", "Timeline event created.", "event", event))
                 .build();
     }
 
     // Updates an existing timeline event.
     @PUT
     @Path("/{id}")
-    public Response updateEvent(@PathParam("id") int id, TimelineEvent updatedEvent) {
-        if (id < 1) {
+    @Transactional
+    public Response updateEvent(@PathParam("id") Long id, TimelineEvent updatedEvent) {
+        if (id == null || id < 1) {
             return badRequest("Please provide a valid timeline event ID.");
         }
 
@@ -169,34 +141,34 @@ public class TimelineResource {
                     .build();
         }
 
-        for (TimelineEvent event : timelineEvents) {
-            if (event.id == id) {
-                event.title = updatedEvent.title.trim();
-                event.date = updatedEvent.date.trim();
-                event.description = updatedEvent.description.trim();
-                return Response.ok(Map.of("message", "Timeline event updated.", "event", event)).build();
-            }
+        TimelineEvent existingEvent = TimelineEvent.findById(id);
+        if (existingEvent == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", "No timeline event was found for that ID."))
+                    .build();
         }
 
-        return Response.status(Response.Status.NOT_FOUND)
-                .entity(Map.of("message", "No timeline event was found for that ID."))
-                .build();
+        existingEvent.title = updatedEvent.title.trim();
+        existingEvent.date = updatedEvent.date.trim();
+        existingEvent.description = updatedEvent.description.trim();
+
+        return Response.ok(Map.of("message", "Timeline event updated.", "event", existingEvent)).build();
     }
 
     // Deletes a timeline event by ID.
     @DELETE
     @Path("/{id}")
-    public Response deleteEvent(@PathParam("id") int id) {
-        if (id < 1) {
+    @Transactional
+    public Response deleteEvent(@PathParam("id") Long id) {
+        if (id == null || id < 1) {
             return badRequest("Please provide a valid timeline event ID.");
         }
 
-        for (int i = 0; i < timelineEvents.size(); i++) {
-            if (timelineEvents.get(i).id == id) {
-                timelineEvents.remove(i);
-                return Response.ok(Map.of("message", "Timeline event deleted."))
-                        .build();
-            }
+        TimelineEvent event = TimelineEvent.findById(id);
+        if (event != null) {
+            event.delete();
+            return Response.ok(Map.of("message", "Timeline event deleted."))
+                    .build();
         }
 
         return Response.status(Response.Status.NOT_FOUND)
