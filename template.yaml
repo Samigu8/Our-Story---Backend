@@ -13,6 +13,16 @@ Parameters:
     Type: CommaDelimitedList
     Default: http://localhost:5173,https://main.d28kug95c4cgtc.amplifyapp.com
     Description: Origins allowed to upload directly to S3 via presigned URLs.
+  QuarkusDatasourceJdbcUrl:
+    Type: String
+    Description: "JDBC URL for MySQL used by Quarkus (example: jdbc:mysql://host:3306/dbname)."
+  QuarkusDatasourceUsername:
+    Type: String
+    Description: Database username for Quarkus default datasource.
+  QuarkusDatasourcePassword:
+    Type: String
+    NoEcho: true
+    Description: Database password for Quarkus default datasource.
 
 Resources:
   AppImagesBucket:
@@ -70,6 +80,9 @@ Resources:
               Resource: !Sub '${AppImagesBucket.Arn}/*'
       Environment:
         Variables:
+          QUARKUS_DATASOURCE_JDBC_URL: !Ref QuarkusDatasourceJdbcUrl
+          QUARKUS_DATASOURCE_USERNAME: !Ref QuarkusDatasourceUsername
+          QUARKUS_DATASOURCE_PASSWORD: !Ref QuarkusDatasourcePassword
           S3_BUCKET_NAME: !Ref AppImagesBucket
           APP_S3_REGION: !Ref AWS::Region
           S3_PUBLIC_BASE_URL: !Sub 'https://${AppImagesBucket}.s3.${AWS::Region}.amazonaws.com'
