@@ -57,6 +57,39 @@ If you want to learn more about building native executables, please consult <htt
 
 - RESTEasy Classic ([guide](https://quarkus.io/guides/resteasy)): REST endpoint framework implementing Jakarta REST and more
 
+## SAM Deploy With S3 Image Storage
+
+This repository now includes a root SAM template at `template.yaml` that provisions:
+
+- The Quarkus Lambda function
+- An S3 bucket for Timeline and Memories image uploads
+- Bucket CORS rules for browser uploads using presigned URLs
+- IAM permissions for generating signed image upload requests
+
+Build first:
+
+```powershell
+./mvnw clean package -DskipTests
+```
+
+Deploy with guided mode:
+
+```powershell
+sam deploy --guided -t template.yaml
+```
+
+After the first guided deploy, you can reuse the saved config:
+
+```powershell
+sam deploy
+```
+
+Set these environment variables for local development:
+
+- `AWS_REGION`
+- `S3_BUCKET_NAME`
+- `S3_PUBLIC_BASE_URL` (optional; defaults to standard S3 URL pattern)
+
 ## Provided Code
 
 ### RESTEasy JAX-RS

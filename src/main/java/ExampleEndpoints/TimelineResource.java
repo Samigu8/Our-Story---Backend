@@ -66,6 +66,10 @@ public class TimelineResource {
             errors.put("description", "Description must be 400 characters or fewer.");
         }
 
+        if (event.imageUrl != null && event.imageUrl.trim().length() > 500) {
+            errors.put("imageUrl", "Image URL must be 500 characters or fewer.");
+        }
+
         return errors;
     }
 
@@ -118,6 +122,7 @@ public class TimelineResource {
         event.title = event.title.trim();
         event.date = event.date.trim();
         event.description = event.description.trim();
+        event.imageUrl = event.imageUrl == null || event.imageUrl.trim().isEmpty() ? null : event.imageUrl.trim();
         event.persist();
 
         return Response.status(Response.Status.CREATED)
@@ -151,6 +156,9 @@ public class TimelineResource {
         existingEvent.title = updatedEvent.title.trim();
         existingEvent.date = updatedEvent.date.trim();
         existingEvent.description = updatedEvent.description.trim();
+        existingEvent.imageUrl = updatedEvent.imageUrl == null || updatedEvent.imageUrl.trim().isEmpty()
+            ? null
+            : updatedEvent.imageUrl.trim();
 
         return Response.ok(Map.of("message", "Timeline event updated.", "event", existingEvent)).build();
     }

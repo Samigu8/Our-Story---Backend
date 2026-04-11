@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AWS Serverless Quarkus HTTP with S3 image uploads
+
+Globals:
+  Api:
+    EndpointConfiguration: REGIONAL
+    BinaryMediaTypes:
+      - '*/*'
+
+Parameters:
+  AllowedOrigins:
+    Type: CommaDelimitedList
+    Default: http://localhost:5173,https://main.d28kug95c4cgtc.amplifyapp.com
+    Description: Origins allowed to upload directly to S3 via presigned URLs.
+
+Resources:
+  AppImagesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: false
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: false
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods:
+              - PUT
+              - GET
+              - HEAD
+            AllowedHeaders:
+              - '*'
+            AllowedOrigins: !Ref AllowedOrigins
+            ExposedHeaders:
+              - ETag
+            MaxAge: 3000
+
+  AppImagesBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AppImagesBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowPublicReadForUploadedImages
+            Effect: Allow
+            Principal: '*'
+            Action: s3:GetObject
+            Resource: !Sub '${AppImagesBucket.Arn}/*'
+
+  CsSamuelgutierrezBackend:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest
+      Runtime: java21
+      CodeUri: target/function.zip
+      MemorySize: 512
+      Timeout: 15
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Statement:
+            - Sid: AllowS3ImageUploadSigning
+              Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:AbortMultipartUpload
+                - s3:PutObjectAcl
+                - s3:GetObject
+              Resource: !Sub '${AppImagesBucket.Arn}/*'
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: !Ref AppImagesBucket
+          APP_S3_REGION: !Ref AWS::Region
+          S3_PUBLIC_BASE_URL: !Sub 'https://${AppImagesBucket}.s3.${AWS::Region}.amazonaws.com'
+      Events:
+        HttpApiEvent:
+          Type: HttpApi
+
+Outputs:
+  CsSamuelgutierrezBackendApi:
+    Description: URL for application
+    Value: !Sub 'https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/'
+    Export:
+      Name: CsSamuelgutierrezBackendApi
+
+  AppImagesBucketName:
+    Description: S3 bucket used for timeline and memory images
+    Value: !Ref AppImagesBucket
+
+  AppImagesBucketPublicBaseUrl:
+    Description: Public URL base for uploaded images
+    Value: !Sub 'https://${AppImagesBucket}.s3.${AWS::Region}.amazonaws.com'

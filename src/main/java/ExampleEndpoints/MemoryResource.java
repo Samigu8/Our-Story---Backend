@@ -41,8 +41,8 @@ public class MemoryResource {
 
         if (photo.imageUrl == null || photo.imageUrl.trim().isEmpty()) {
             errors.put("imageUrl", "Image URL is required.");
-        } else if (photo.imageUrl.trim().length() > 300) {
-            errors.put("imageUrl", "Image URL must be 300 characters or fewer.");
+        } else if (photo.imageUrl.trim().length() > 500) {
+            errors.put("imageUrl", "Image URL must be 500 characters or fewer.");
         }
 
         return errors;

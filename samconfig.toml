@@ -1,0 +1,14 @@
+version = 0.1
+
+[default.global.parameters]
+region = "us-east-1"
+
+[default.deploy.parameters]
+stack_name = "SamuelGutierrez-API"
+template_file = "template.yaml"
+resolve_s3 = true
+s3_prefix = "SamuelGutierrez-API"
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+image_repositories = []
+parameter_overrides = "AllowedOrigins=\"http://localhost:5173,https://main.d28kug95c4cgtc.amplifyapp.com\""
