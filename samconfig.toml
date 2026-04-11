@@ -11,4 +11,4 @@ s3_prefix = "SamuelGutierrez-API"
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = true
 image_repositories = []
-parameter_overrides = "AllowedOrigins=\"http://localhost:5173,https://main.d28kug95c4cgtc.amplifyapp.com\""
+parameter_overrides = "AllowedOrigins=\"http://localhost:5173,https://main.d28kug95c4cgtc.amplifyapp.com\" QuarkusDatasourceJdbcUrl=\"cs320db-samuelgutierrez.ce38ogs02jpe.us-east-1.rds.amazonaws.com\" QuarkusDatasourceUsername=\"Sam\""
